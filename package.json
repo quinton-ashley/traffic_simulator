@@ -1,0 +1,17 @@
+{
+	"name": "traffic_simulator",
+	"version": "1.0.0",
+	"description": "Traffic Simulator",
+	"author": "quinton-ashley",
+	"license": "CC0",
+	"dependencies": {
+		"p5play": "^3.31.1",
+		"q5": "^3.2.1"
+	},
+	"scripts": {
+		"v": "npm version patch --force",
+		"V": "npm version minor --force",
+		"version": "git add -A",
+		"postversion": "git push"
+	}
+}
