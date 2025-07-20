@@ -1,11 +1,11 @@
 let q = await Q5.WebGPU();
 
-let stage = 5;
+let stage = 0;
 let line = 0;
 let showDialog = true;
 let autoDialog = 500;
 
-createCanvas(1260, 1000);
+createCanvas();
 displayMode(MAXED, PIXELATED);
 noStroke();
 
@@ -15,10 +15,10 @@ let fast_traffic = loadAudio('sounds/fast_traffic.flac');
 let slow_traffic = loadAudio('sounds/slow_traffic.flac');
 let pete_holmes_bit = loadAudio('sounds/pete_holmes_bit.mp3');
 let traffic_jam = loadAudio('sounds/traffic_jam.flac');
-let train_flyby;
+let train_flyby = loadAudio('sounds/train_flyby.flac');
 
 q.setup = () => {
-	if (stage != 5) {
+	if (stage <= 4) {
 		fast_traffic.volume = 0.8;
 		slow_traffic.volume = 0.8;
 	} else {
@@ -27,6 +27,7 @@ q.setup = () => {
 	}
 	fast_traffic.loop = true;
 	slow_traffic.loop = true;
+	train_flyby.loop = true;
 };
 
 let dia = await loadJSON('dialog.json');
@@ -77,11 +78,14 @@ window.cars = cars;
 let player = new Sprite('formula');
 player.scale = 6;
 player.removeColliders();
+player.addAni('train', 'assets/train.png');
 if (stage == 0) player.changeAni('station');
+else if (stage == 6) player.changeAni('train');
+else player.changeAni('formula');
 window.player = player;
 
-let lanesPerRoadway = stage <= 3 ? 5 : 10;
-let carsPerLane = stage <= 3 ? 20 : 10;
+let lanesPerRoadway = stage <= 3 ? 5 : stage != 6 ? 10 : 3;
+let carsPerLane = stage <= 3 ? 20 : stage != 6 ? 15 : 25;
 let topLaneY = -25;
 let bottomLaneY = 190;
 
@@ -101,6 +105,7 @@ function createLanes() {
 			if (i != 4 || j != carsPerLane - 5) {
 				car = new lane.Sprite(random(carAnis));
 			} else {
+				if (stage == 6) continue;
 				// insert player car
 				car = player;
 			}
@@ -126,8 +131,13 @@ function createLanes() {
 	player.lane = 4;
 	player.y = player.targetY = lanes[4].y - player.hh - (!stage ? 5 : 1);
 	player.idxInLane = undefined; // not in lane array yet
-	insertInLane(player, player.lane);
-	player.vel.x = 2.6;
+	if (stage != 6) {
+		insertInLane(player, player.lane);
+		player.vel.x = 2.6;
+	} else {
+		player.y = player.targetY = 60;
+		player.vel.x = 20;
+	}
 }
 
 createLanes();
@@ -374,23 +384,20 @@ function updateCars() {
 }
 
 q.update = () => {
-	cur.x = mouse.x;
-	cur.y = mouse.y;
-	cur.speed = 0;
-	cur.rotationSpeed = 0;
-
-	if (kb.presses('up')) {
-		if (player.lane > 0 && isLaneOpen(player, player.lane - 1)) {
-			insertInLane(player, player.lane - 1);
-			player.targetY = lanes[player.lane].y - player.hh - 1;
-			if (player.vel.x < 0.5) player.vel.x = 0.5; // ensure player moves forward
+	if (stage != 6) {
+		if (kb.presses('up')) {
+			if (player.lane > 0 && isLaneOpen(player, player.lane - 1)) {
+				insertInLane(player, player.lane - 1);
+				player.targetY = lanes[player.lane].y - player.hh - 1;
+				if (player.vel.x < 0.5) player.vel.x = 0.5; // ensure player moves forward
+			}
 		}
-	}
-	if (kb.presses('down')) {
-		if (player.lane < lanesPerRoadway - 1 && isLaneOpen(player, player.lane + 1)) {
-			insertInLane(player, player.lane + 1);
-			player.targetY = lanes[player.lane].y - player.hh - 1;
-			if (player.vel.x < 0.5) player.vel.x = 0.5; // ensure player moves forward
+		if (kb.presses('down')) {
+			if (player.lane < lanesPerRoadway - 1 && isLaneOpen(player, player.lane + 1)) {
+				insertInLane(player, player.lane + 1);
+				player.targetY = lanes[player.lane].y - player.hh - 1;
+				if (player.vel.x < 0.5) player.vel.x = 0.5; // ensure player moves forward
+			}
 		}
 	}
 
@@ -402,7 +409,7 @@ q.update = () => {
 	let lerpSpeed = map(player.vel.x, minSpeed, maxSpeed, minLerp, maxLerp, true);
 	player.y += (player.targetY - player.y) * lerpSpeed;
 
-	if (stage != 4) {
+	if (stage != 4 && stage != 6) {
 		if (kb.pressing('left')) player.vel.x -= 0.1;
 		if (kb.pressing('right')) player.vel.x += 0.1;
 	}
@@ -414,11 +421,14 @@ q.update = () => {
 		cursorWaitIdx = (cursorWaitIdx + 1) % 3;
 	}
 
-	if (mouse.presses()) {
+	if (mouse.presses() || kb.presses(' ')) {
 		if (!fast_traffic.playing) fast_traffic.play();
 		if (!slow_traffic.playing) slow_traffic.play();
 		if (stage == 5) {
 			if (!traffic_jam.playing) traffic_jam.play();
+		}
+		if (stage == 6) {
+			if (!train_flyby.playing) train_flyby.play();
 		}
 	}
 
@@ -505,7 +515,7 @@ let textY = -200;
 function dialog() {
 	if (showDialog) {
 		autoDialog--;
-		if ((mouse.presses() && autoDialog > 30) || autoDialog <= 0) {
+		if (((mouse.presses() || kb.presses(' ')) && autoDialog > 40) || autoDialog <= 0) {
 			autoDialog = 240;
 			if (line < dia[stage].length - 1) line++;
 			else {
@@ -545,7 +555,7 @@ function dialog() {
 				}
 				if (line == 9) {
 					lanesPerRoadway = 10;
-					carsPerLane = 10;
+					carsPerLane = 15;
 					world.timeScale = 1;
 					fader = 1;
 					riser = 0;
@@ -561,9 +571,10 @@ function dialog() {
 			}
 
 			if (stage == 4) {
-				if (line == -1) {
+				if (line == 9) {
 					fader = 1;
 					riser = 0;
+				} else if (line == -1) {
 					fast_traffic.volume = 0.4;
 					slow_traffic.volume = 0.4;
 					pete_holmes_bit.play();
@@ -571,6 +582,28 @@ function dialog() {
 						nextStage();
 						traffic_jam.play();
 					};
+				}
+			}
+
+			if (stage == 5) {
+				if (line == 9) {
+					fader = 1;
+					riser = 0;
+					train_flyby.play();
+				}
+				if (line == -1) {
+					player.changeAni('train');
+					lanesPerRoadway = 3;
+					carsPerLane = 25;
+					fader = 1;
+					riser = 0;
+					lanes = [];
+					player.opacity = 1;
+					for (let car of cars) {
+						car.remove();
+					}
+					nextStage();
+					createLanes();
 				}
 			}
 		}
@@ -608,7 +641,7 @@ function dialog() {
 			nextStage();
 		}
 	} else if (stage == 2) {
-		if (line == -1 && bombedCars > 3) {
+		if (line == -1 && bombedCars > 40) {
 			nextStage();
 			startStage3();
 		}
@@ -638,16 +671,14 @@ let fader = 1;
 let riser = 0;
 
 q.drawFrame = () => {
-	let bg = stage <= 1 ? 'skyblue' : 'orange';
-	if (stage == 5) bg = 'pink';
-	background(bg);
-
 	cursor('none');
 
-	camera.x = player.x + width / 4;
+	let bg = stage <= 1 ? 'skyblue' : 'orange';
+	if (stage == 5) bg = 'pink';
+	if (stage == 6) bg = color(0, 0, 0.2);
+	background(bg);
 
-	// fill(0, 0.2, 0);
-	fill('green');
+	camera.x = player.x + width / 4;
 
 	let noiseSeedOffset = 1000 + camera.x / 2000;
 
@@ -655,7 +686,8 @@ q.drawFrame = () => {
 	fill(0.8, 0.5, 0);
 	beginShape();
 	vertex(-halfWidth - 40, 0);
-	for (let x = -halfWidth - 100; x < halfWidth + 100; x += 5) {
+	noiseScale = 0.003;
+	for (let x = -halfWidth - 400; x < halfWidth + 400; x += 5) {
 		let n = noise(x * noiseScale + noiseSeedOffset);
 		let y = hillBaseY - n * hillSize;
 		vertex(x, y);
@@ -667,9 +699,9 @@ q.drawFrame = () => {
 	fill(0.8, 0.6, 0); // more opaque shadow
 	beginShape();
 	noiseSeedOffset += 2000;
-	noiseScale = 0.003;
+	noiseScale = 0.002;
 	vertex(-halfWidth - 40 + shadowOffsetX, shadowOffsetY);
-	for (let x = -halfWidth - 100; x < halfWidth + 100; x += 5) {
+	for (let x = -halfWidth - 400; x < halfWidth + 400; x += 5) {
 		let n = noise(x * noiseScale + noiseSeedOffset);
 		let y = hillBaseY - n * hillSize + shadowOffsetY;
 		vertex(x + shadowOffsetX, y);
@@ -684,11 +716,10 @@ q.drawFrame = () => {
 	// draw pavement
 	fill(0.5);
 	rect(-halfWidth, topLaneY - 30, width, roadWayHeight + 25);
-
 	rect(-halfWidth, bottomLaneY - 30, width, roadWayHeight + 25);
 
-	fill(1);
 	// Draw road lines
+	fill(1);
 	rect(-halfWidth, topLaneY - 20, width, 2);
 	rect(-halfWidth, topLaneY + roadWayHeight - 17, width, 2);
 	rect(-halfWidth, bottomLaneY - 20, width, 2);
@@ -709,7 +740,18 @@ q.drawFrame = () => {
 		}
 	}
 
-	if (stage >= 1 && stage <= 4) {
+	if (stage == 6) {
+		// Draw train tracks
+		fill(0.5);
+		let trackY = 88;
+		rect(-halfWidth, trackY, width, 2);
+		rect(-halfWidth, trackY + 8, width, 2);
+		trackY = 120;
+		rect(-halfWidth, trackY, width, 2);
+		rect(-halfWidth, trackY + 8, width, 2);
+	}
+
+	if (stage >= 1 && stage <= 5) {
 		if (stage == 1) {
 			fill(1, 1, 0, riser / 2);
 		} else if (stage == 2) {
@@ -725,10 +767,16 @@ q.drawFrame = () => {
 				fill(0, 0);
 			}
 		} else if (stage == 4) {
-			if (line != -1) {
+			if (line <= 8 && line != -1) {
 				fill(fader, fader, 1, riser / 2);
 			} else {
 				fill(riser, riser, 1, fader / 2);
+			}
+		} else if (stage == 5) {
+			if (line <= 9) {
+				fill(1, 0.5 + fader / 2, 0.5 + fader / 2, riser / 2);
+			} else {
+				fill(1, riser);
 			}
 		}
 		// tint screen effect
@@ -756,6 +804,8 @@ q.drawFrame = () => {
 			else car.opacity = sin(frameCount * 2) * 0.1 + 0.25; // subtle flicker effect
 		} else if (stage == 3 && line <= 12 && line != -1) {
 			car.opacity = line <= 8 ? fader : riser;
+		} else if (stage == 5 && line >= 9) {
+			car.opacity = fader;
 		} else {
 			car.opacity = 1;
 		}
@@ -773,6 +823,11 @@ q.drawFrame = () => {
 	camera.on();
 	allSprites.draw();
 	camera.off();
+
+	cur.x = mouse.x;
+	cur.y = mouse.y;
+	cur.speed = 0;
+	cur.rotationSpeed = 0;
 
 	pushMatrix();
 	translate(mouseX, mouseY);

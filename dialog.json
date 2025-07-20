@@ -32,10 +32,10 @@
 		"It's WORSE than before!"
 	],
 	"4": [
-		"Why even bother...",
-		"switching lanes like Frogger?",
 		"Gotta POWER-DOWN.",
 		"Cruise control engaged.",
+		"Why even bother...",
+		"switching lanes like Frogger?",
 		"I'm wasting my life away...",
 		"and for what?",
 		"To deliver money from my boss...",
@@ -49,6 +49,8 @@
 		"turn on the radio."
 	],
 	"5": [
+		"Gotta POWER-UP!",
+		"Cruise control disengaged.",
 		"Pete Holmes is right!",
 		"I have the POWER to...",
 		"just sit back, relax, and...",
@@ -56,8 +58,21 @@
 		"Why postpone happiness?",
 		"Life is about the journey...",
 		"not the destination.",
-		"But I'd still like to go fast.",
-		"Maybe I should remove some lanes...",
-		"to add a train!"
+		"But...",
+		"I'd still like to go fast.",
+		"Maybe I remove some lanes...",
+		"to add...",
+		"a train!"
+	],
+	"6": [
+		"Hell yeah!",
+		"I defeated traffic!",
+		"Traffic Simulator 2025",
+		"By Quinton Ashley",
+		"Made with p5play!",
+		"For Kenney Jam 2025",
+		"All visual assets by Kenney.nl",
+		"Music by Quinton Ashley",
+		"Thanks for playing!"
 	]
 }
