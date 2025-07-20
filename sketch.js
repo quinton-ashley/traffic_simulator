@@ -100,7 +100,7 @@ window.cars = cars;
 let player = new Sprite('formula');
 player.scale = 6;
 player.removeColliders();
-player.addAni('train', 'assets/train.png');
+player.addAni('train', await load('assets/train.png'));
 if (stage == 0) player.changeAni('station');
 else if (stage == 6) player.changeAni('train');
 else player.changeAni('formula');
