@@ -1,5 +1,7 @@
 # Traffic Simulator 2025
 
+[Play the game!](https://quinton-ashley.github.io/traffic_simulator/)
+
 Travel through the five stages of grief as you weave, shove, and blast your way through traffic in this retro "racing" game.
 
 ## Visual Assets

@@ -17,14 +17,28 @@ let pete_holmes_bit = loadAudio('sounds/pete_holmes_bit.mp3');
 let traffic_jam = loadAudio('sounds/traffic_jam.flac');
 let train_flyby = loadAudio('sounds/train_flyby.flac');
 
+let explosionsSounds = [];
+for (let i = 2; i <= 3; i++) {
+	for (let j = 0; j <= 4; j++) {
+		let explosion = loadSound(`sounds/Explosion${i}__00${j}.wav`);
+		explosion.volume = 0.8;
+		explosionsSounds.push(explosion);
+	}
+}
+
+for (let i = 0; i <= 4; i++) {
+	explosionsSounds.push(loadSound(`sounds/explosionCrunch_00${i}.ogg`));
+}
+
 q.setup = () => {
 	if (stage <= 4) {
-		fast_traffic.volume = 0.8;
-		slow_traffic.volume = 0.8;
+		fast_traffic.volume = 0.6;
+		slow_traffic.volume = 0.6;
 	} else {
 		fast_traffic.volume = 0.4;
 		slow_traffic.volume = 0.4;
 	}
+	traffic_jam.volume = 0.9;
 	fast_traffic.loop = true;
 	slow_traffic.loop = true;
 	train_flyby.loop = true;
@@ -66,6 +80,14 @@ allSprites.addAnis(atlas);
 allSprites.autoCull = false;
 allSprites.gravityScale = 0;
 // allSprites.scale = 6;
+
+let emoteAtlas = await load('assets/emotes.xml');
+emoteAtlas = parseTextureAtlas(emoteAtlas);
+
+let emotes = new Group();
+emotes.spriteSheet = await load('assets/emotes.png');
+emotes.anis.cutFrames = true;
+emotes.addAnis(emoteAtlas);
 
 let carAnis = Object.keys(allSprites.anis).slice(0, 42);
 
@@ -146,7 +168,7 @@ let marks = new Group();
 marks.w = 64;
 marks.h = 64;
 marks.physics = 'none';
-marks.life = 60;
+marks.life = 90;
 marks.rotationSpeed = () => random(-5, 5);
 marks.addAni('crosshairs-green', await load('assets/crosshairs-green.png'), { frames: 200 });
 // marks.addAni('crosshairs-red', await load('assets/crosshairs-red.png'), { frames: 200 });
@@ -155,6 +177,14 @@ marks.layer = 999;
 window.marks = marks;
 
 let markedCars = [];
+
+let smokes = new Group();
+smokes.w = 512;
+smokes.h = 512;
+smokes.physics = 'none';
+smokes.life = 10;
+smokes.addAni('assets/smoke_00.png', 9);
+smokes.scale = 0.5;
 
 // distance from player to recycle cars
 let recycleThreshold = 1200;
@@ -281,6 +311,13 @@ async function bombCar(car) {
 	car.direction = random(-135, -45);
 	car.rotationSpeed = random(-10, 10);
 	bombedCars++;
+	let explosion = random(explosionsSounds);
+	explosion.play();
+
+	let smoke = new smokes.Sprite(car.x, car.y);
+	smoke.ani.frame = int(random(smoke.ani.length));
+	// smoke.ani.pause();
+
 	await delay(5000 / world.timeScale);
 	if (!bombPower) return;
 	if (line >= 8) return;
@@ -422,9 +459,11 @@ q.update = () => {
 	}
 
 	if (mouse.presses() || kb.presses(' ')) {
-		if (!fast_traffic.playing) fast_traffic.play();
-		if (!slow_traffic.playing) slow_traffic.play();
-		if (stage == 5) {
+		if (stage <= 5) {
+			if (!fast_traffic.playing) fast_traffic.play();
+			if (!slow_traffic.playing) slow_traffic.play();
+		}
+		if (stage >= 5) {
 			if (!traffic_jam.playing) traffic_jam.play();
 		}
 		if (stage == 6) {
@@ -574,6 +613,10 @@ function dialog() {
 				if (line == 9) {
 					fader = 1;
 					riser = 0;
+					// for (let car of cars) {
+					// 	let emote = new emotes.Sprite(car.x, car.y - 20);
+					// 	emote.changeAni(random(emotes.anis));
+					// }
 				} else if (line == -1) {
 					fast_traffic.volume = 0.4;
 					slow_traffic.volume = 0.4;
@@ -592,6 +635,8 @@ function dialog() {
 					train_flyby.play();
 				}
 				if (line == -1) {
+					fast_traffic.pause();
+					slow_traffic.pause();
 					player.changeAni('train');
 					lanesPerRoadway = 3;
 					carsPerLane = 25;
