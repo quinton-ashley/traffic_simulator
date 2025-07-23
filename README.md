@@ -1,8 +1,8 @@
-# Traffic Simulator 2025
+# Traffic Simulator 2025 (Made with p5play!)
 
 [Play the game!](https://quinton-ashley.github.io/traffic_simulator/)
 
-Travel through the five stages of grief as you weave, shove, and blast your way through traffic in this retro "racing" game.
+Gain the power to beat traffic as you weave, shove, and blast your way through the five stages of grief in this retro "racing" game.
 
 ## Visual Assets
 
@@ -29,6 +29,9 @@ https://freesound.org/people/kyles/sounds/450558/
 
 Uncongested Highway
 https://freesound.org/people/mhtaylor67/sounds/235530/
+
+Car crash
+https://freesound.org/people/squareal/sounds/237375/
 
 SFX: The Ultimate 2017 8 bit Mini pack
 https://phoenix1291.itch.io/sfx-the-ultimate-2017-8-bit-mini-pack

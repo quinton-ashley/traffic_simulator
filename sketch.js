@@ -34,6 +34,8 @@ for (let i = 0; i <= 4; i++) {
 	explosionsSounds.push(loadSound(`sounds/explosionCrunch_00${i}.ogg`));
 }
 
+let crash = loadSound('sounds/car_crash.flac');
+
 q.setup = () => {
 	if (stage <= 4) {
 		fast_traffic.volume = 0.6;
@@ -426,6 +428,8 @@ function updateCars() {
 		if (distance < -15 && player.vel.x > player.carAhead.vel.x) {
 			player.vel.x -= 1; // brake
 		}
+
+		if (player.overlaps(player.carAhead)) crash.play();
 	}
 }
 
