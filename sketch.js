@@ -1,6 +1,10 @@
 let q = await Q5.WebGPU();
 
-let stage = 0;
+// get url params for stage
+let urlParams = new URLSearchParams(window.location.search);
+let stageParam = urlParams.get('stage');
+
+let stage = stageParam || 0;
 let line = 0;
 let showDialog = true;
 let autoDialog = 500;
@@ -35,8 +39,11 @@ q.setup = () => {
 		fast_traffic.volume = 0.6;
 		slow_traffic.volume = 0.6;
 	} else {
-		fast_traffic.volume = 0.4;
-		slow_traffic.volume = 0.4;
+		fast_traffic.volume = 0.2;
+		slow_traffic.volume = 0.2;
+	}
+	if (stage == 6) {
+		traffic_jam.currentTime = 104;
 	}
 	traffic_jam.volume = 0.9;
 	fast_traffic.loop = true;
@@ -52,10 +59,10 @@ textAlign(CENTER, CENTER);
 let cur = new Sprite();
 cur.w = 16;
 cur.h = 16;
-cur.pixelPerfect = true;
-cur.autoDraw = false;
+cur.physics = KINEMATIC;
+cur.visible = false;
 cur.removeColliders();
-cur.layer = 1000;
+cur.layer = -1;
 cur.spriteSheet = await load('assets/cursors.png');
 cur.anis.cutFrames = true;
 cur.addAnis({
@@ -85,9 +92,11 @@ let emoteAtlas = await load('assets/emotes.xml');
 emoteAtlas = parseTextureAtlas(emoteAtlas);
 
 let emotes = new Group();
+emotes.physics = 'none';
 emotes.spriteSheet = await load('assets/emotes.png');
 emotes.anis.cutFrames = true;
 emotes.addAnis(emoteAtlas);
+emotes.scale = 6;
 
 let carAnis = Object.keys(allSprites.anis).slice(0, 42);
 
@@ -106,7 +115,7 @@ else if (stage == 6) player.changeAni('train');
 else player.changeAni('formula');
 window.player = player;
 
-let lanesPerRoadway = stage <= 3 ? 5 : stage != 6 ? 10 : 3;
+let lanesPerRoadway = stage <= 3 ? 5 : stage != 6 ? 9 : 3;
 let carsPerLane = stage <= 3 ? 20 : stage != 6 ? 15 : 25;
 let topLaneY = -25;
 let bottomLaneY = 190;
@@ -179,12 +188,11 @@ window.marks = marks;
 let markedCars = [];
 
 let smokes = new Group();
-smokes.w = 512;
-smokes.h = 512;
+smokes.w = 256;
+smokes.h = 256;
 smokes.physics = 'none';
 smokes.life = 10;
-smokes.addAni('assets/smoke_00.png', 9);
-smokes.scale = 0.5;
+smokes.addAni('assets/smokes.png', { frames: 9 });
 
 // distance from player to recycle cars
 let recycleThreshold = 1200;
@@ -293,8 +301,8 @@ function changeToClosestLane(car) {
 }
 
 async function bombCar(car) {
-	markedCars.push(car);
 	car.wasMarked = true;
+	markedCars.push(car);
 	let mark = new marks.Sprite();
 	mark.physics = 'none'; // bug: shouldn't be necessary
 	mark.car = car;
@@ -311,8 +319,8 @@ async function bombCar(car) {
 	car.direction = random(-135, -45);
 	car.rotationSpeed = random(-10, 10);
 	bombedCars++;
-	let explosion = random(explosionsSounds);
-	explosion.play();
+	let explode = random(explosionsSounds);
+	explode.play();
 
 	let smoke = new smokes.Sprite(car.x, car.y);
 	smoke.ani.frame = int(random(smoke.ani.length));
@@ -332,6 +340,7 @@ async function bombCar(car) {
 	let lane = lanes[laneIdx];
 	car.y = lane.y - car.hh - 1;
 	car.wasMarked = false;
+	markedCars.splice(markedCars.indexOf(car), 1);
 	insertInLane(car, laneIdx, lane.length - 1);
 }
 
@@ -391,7 +400,7 @@ function updateCars() {
 			}
 
 			// Car recycling logic
-			if (car.x < player.x - recycleThreshold) {
+			if (car.x < player.x - recycleThreshold && !car.isMarked) {
 				let laneIdx = car.lane;
 				removeFromLane(car);
 				car.lane = laneIdx;
@@ -420,20 +429,28 @@ function updateCars() {
 	}
 }
 
+let stickLockout = true,
+	mouseControlsEnabled = true;
+
 q.update = () => {
+	if (contro.leftStick.y < 0.5 && contro.leftStick.y > -0.5) {
+		stickLockout = false;
+	}
 	if (stage != 6) {
-		if (kb.presses('up')) {
+		if (kb.presses('up') || contro.presses('up') || (contro.ls.y < -0.75 && !stickLockout)) {
 			if (player.lane > 0 && isLaneOpen(player, player.lane - 1)) {
 				insertInLane(player, player.lane - 1);
 				player.targetY = lanes[player.lane].y - player.hh - 1;
 				if (player.vel.x < 0.5) player.vel.x = 0.5; // ensure player moves forward
+				stickLockout = true;
 			}
 		}
-		if (kb.presses('down')) {
+		if (kb.presses('down') || contro.presses('down') || (contro.ls.y > 0.75 && !stickLockout)) {
 			if (player.lane < lanesPerRoadway - 1 && isLaneOpen(player, player.lane + 1)) {
 				insertInLane(player, player.lane + 1);
 				player.targetY = lanes[player.lane].y - player.hh - 1;
 				if (player.vel.x < 0.5) player.vel.x = 0.5; // ensure player moves forward
+				stickLockout = true;
 			}
 		}
 	}
@@ -447,8 +464,10 @@ q.update = () => {
 	player.y += (player.targetY - player.y) * lerpSpeed;
 
 	if (stage != 4 && stage != 6) {
-		if (kb.pressing('left')) player.vel.x -= 0.1;
-		if (kb.pressing('right')) player.vel.x += 0.1;
+		if (kb.pressing('left') || contro.presses('left') || contro.lt) player.vel.x -= 0.1;
+		if (kb.pressing('right') || contro.presses('right') || contro.rt) player.vel.x += 0.1;
+		if (contro.ls.x < -0.2) player.vel.x += contro.ls.x * 0.08; // left
+		if (contro.ls.x > 0.2) player.vel.x += contro.ls.x * 0.08; // right
 	}
 	if (player.vel.x < 0) player.vel.x = 0;
 
@@ -458,8 +477,10 @@ q.update = () => {
 		cursorWaitIdx = (cursorWaitIdx + 1) % 3;
 	}
 
-	if (mouse.presses() || kb.presses(' ')) {
-		if (stage <= 5) {
+	if (mouse.pressed()) mouseControlsEnabled = true;
+
+	if (mouse.presses() || kb.presses(' ') || contro.presses('a')) {
+		if (stage <= 4) {
 			if (!fast_traffic.playing) fast_traffic.play();
 			if (!slow_traffic.playing) slow_traffic.play();
 		}
@@ -473,9 +494,9 @@ q.update = () => {
 
 	if (grabPower && cur.overlapping(cars)) {
 		cur.rotation = 0;
-		if (mouse.pressing()) {
+		if (mouse.pressing() || kb.pressing(' ') || contro.a || contro.l || contro.r || contro.select) {
 			if (!grabCar) {
-				grabCar = world.getSpriteAt(mouse.x, mouse.y, cars);
+				grabCar = world.getSpriteAt(cur.x, cur.y, cars);
 				if (grabCar) grabbedCars++;
 			}
 			if (grabCar) {
@@ -501,7 +522,7 @@ q.update = () => {
 					}
 				}
 
-				grabCar.moveTowards(mouse.x + offset, mouse.y, 0.1);
+				grabCar.moveTowards(cur.x + offset, cur.y, 0.1);
 			}
 		} else {
 			cur.changeAni('grab');
@@ -509,7 +530,7 @@ q.update = () => {
 	} else if (bombPower && cur.overlapping(cars)) {
 		cur.changeAni('crosshair');
 		cur.rotation += 4;
-		let car = world.getSpriteAt(mouse.x, mouse.y, cars);
+		let car = world.getSpriteAt(cur.x || mouse.x, cur.y || mouse.y, cars);
 		if (car && !car.wasMarked && car != player) {
 			bombCar(car);
 		}
@@ -528,7 +549,13 @@ q.update = () => {
 		cur.changeAni('default');
 	}
 
-	if (mouse.released()) {
+	if (
+		mouse.released() ||
+		kb.released(' ') ||
+		contro.released('a') ||
+		contro.released('r') ||
+		contro.released('select')
+	) {
 		// figure out which lane to move the car to
 		if (grabCar) {
 			grabCar.vel.y = 0; // stop vertical movement
@@ -543,8 +570,6 @@ q.update = () => {
 			car.gravityScale = 0;
 			car.speed = 0;
 			car.rotationSpeed = 0;
-			// remove first car from markedCars
-			markedCars.shift();
 		}
 	}
 };
@@ -554,7 +579,7 @@ let textY = -200;
 function dialog() {
 	if (showDialog) {
 		autoDialog--;
-		if (((mouse.presses() || kb.presses(' ')) && autoDialog > 40) || autoDialog <= 0) {
+		if (((mouse.presses() || kb.presses(' ') || contro.presses('a')) && autoDialog > 40) || autoDialog <= 0) {
 			autoDialog = 240;
 			if (line < dia[stage].length - 1) line++;
 			else {
@@ -587,13 +612,13 @@ function dialog() {
 					riser = 1;
 					lanes = [];
 					player.opacity = 1;
-					for (let car of cars) {
-						car.remove();
-					}
+					markedCars = [];
+					cars.remove(player);
+					cars.deleteAll();
 					bombPower = false;
 				}
 				if (line == 9) {
-					lanesPerRoadway = 10;
+					lanesPerRoadway = 9;
 					carsPerLane = 15;
 					world.timeScale = 1;
 					fader = 1;
@@ -610,20 +635,23 @@ function dialog() {
 			}
 
 			if (stage == 4) {
-				if (line == 9) {
+				if (line == 1) {
+					fast_traffic.volume = 0.2;
+					slow_traffic.volume = 0.2;
+					traffic_jam.volume = 0.4;
+					traffic_jam.play();
+				}
+				if (line == -1) {
 					fader = 1;
 					riser = 0;
-					// for (let car of cars) {
-					// 	let emote = new emotes.Sprite(car.x, car.y - 20);
-					// 	emote.changeAni(random(emotes.anis));
-					// }
-				} else if (line == -1) {
-					fast_traffic.volume = 0.4;
-					slow_traffic.volume = 0.4;
+					fast_traffic.pause();
+					slow_traffic.pause();
+					traffic_jam.volume = 0.24;
 					pete_holmes_bit.play();
 					pete_holmes_bit.onended = () => {
+						emotes.removeAll();
 						nextStage();
-						traffic_jam.play();
+						traffic_jam.volume = 1;
 					};
 				}
 			}
@@ -644,9 +672,9 @@ function dialog() {
 					riser = 0;
 					lanes = [];
 					player.opacity = 1;
-					for (let car of cars) {
-						car.remove();
-					}
+					removeFromLane(player);
+					cars.remove(player);
+					cars.deleteAll();
 					nextStage();
 					createLanes();
 				}
@@ -796,7 +824,7 @@ q.drawFrame = () => {
 		rect(-halfWidth, trackY + 8, width, 2);
 	}
 
-	if (stage >= 1 && stage <= 5) {
+	if (stage >= 1) {
 		if (stage == 1) {
 			fill(1, 1, 0, riser / 2);
 		} else if (stage == 2) {
@@ -812,8 +840,8 @@ q.drawFrame = () => {
 				fill(0, 0);
 			}
 		} else if (stage == 4) {
-			if (line <= 8 && line != -1) {
-				fill(fader, fader, 1, riser / 2);
+			if (line != -1) {
+				fill(fader / 2, fader / 2, 1, Math.min(0.5, riser));
 			} else {
 				fill(riser, riser, 1, fader / 2);
 			}
@@ -823,6 +851,8 @@ q.drawFrame = () => {
 			} else {
 				fill(1, riser);
 			}
+		} else if (stage == 6) {
+			fill(1, Math.max(0, 1 - riser * 4));
 		}
 		// tint screen effect
 		rect(-halfWidth, -halfHeight, width, height);
@@ -836,7 +866,7 @@ q.drawFrame = () => {
 	opacity(1);
 	dialog();
 
-	allSprites.debug = kb.pressing('f');
+	allSprites.debug = cur.autoDraw = kb.pressing('f');
 
 	for (let car of cars) {
 		if (
@@ -865,19 +895,41 @@ q.drawFrame = () => {
 		else mark.visible = false;
 	}
 
+	if (emotes.length > 300) emotes[0].remove();
+
+	if (stage == 4 && (line >= 8 || line == -1)) {
+		let car = random(cars);
+		let emote = new emotes.Sprite(car.x, car.y - 20);
+		let emotions = Object.keys(emotes.anis);
+		emote.changeAni(random() < 0.2 ? 'faceHappy' : random(emotions));
+		emote.car = car;
+		emote.layer = car.layer + 1000;
+	}
+
+	for (let emote of emotes) {
+		emote.x = emote.car.x + 10;
+		emote.y = emote.car.y - 50;
+	}
+
 	camera.on();
 	allSprites.draw();
 	camera.off();
 
-	cur.x = mouse.x;
-	cur.y = mouse.y;
-	cur.speed = 0;
-	cur.rotationSpeed = 0;
+	if (mouseControlsEnabled) {
+		cur.moveTowards(mouse.x, mouse.y, 0.5);
+		if (contro.rs.x < -0.2 || contro.rs.x > 0.2 || contro.rs.y < -0.2 || contro.rs.y > 0.2) {
+			mouseControlsEnabled = false;
+		}
+	} else {
+		cur.moveTowards(camera.x + contro.rs.x * halfWidth, camera.y + contro.rs.y * halfHeight, 0.5);
+	}
 
 	pushMatrix();
-	translate(mouseX, mouseY);
+	if (mouseControlsEnabled) translate(mouseX, mouseY);
+	else translate(contro.rs.x * halfWidth, contro.rs.y * halfHeight);
 	scale(4);
 	rotate(cur.rotation);
+	opacity(1);
 	cur.ani.draw(0, 0);
 	popMatrix();
 };

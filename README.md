@@ -24,18 +24,24 @@ https://kenney.nl/assets/onscreen-controls
 
 ## Audio
 
-High Speed Train
-https://freesound.org/people/Garuda1982/sounds/631583/
-
 Highway in Colombia
 https://freesound.org/people/kyles/sounds/450558/
 
 Uncongested Highway
 https://freesound.org/people/mhtaylor67/sounds/235530/
 
+SFX: The Ultimate 2017 8 bit Mini pack
+https://phoenix1291.itch.io/sfx-the-ultimate-2017-8-bit-mini-pack
+
+Sci-Fi explosion sounds by Kenney
+https://kenney.nl/assets/sci-fi-sounds
+
 The Adam Carolla Show: Pete Holmes on Capitalism, Waze, and Ketamine
 https://youtu.be/t9jbfN6tpvM?si=-egiI-IRhbWBr7Jb&t=6186
 1:43:05 - 1:44:13
+
+High Speed Train
+https://freesound.org/people/Garuda1982/sounds/631583/
 
 ## Music
 
