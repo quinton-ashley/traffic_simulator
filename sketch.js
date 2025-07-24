@@ -36,24 +36,22 @@ for (let i = 0; i <= 4; i++) {
 
 let crash = loadSound('sounds/car_crash.flac');
 
-q.setup = () => {
-	if (stage <= 4) {
-		fast_traffic.volume = 0.6;
-		slow_traffic.volume = 0.6;
-	} else {
-		fast_traffic.volume = 0.2;
-		slow_traffic.volume = 0.2;
-	}
-	if (stage == 6) {
-		traffic_jam.currentTime = 104;
-	}
-	traffic_jam.volume = 0.9;
-	fast_traffic.loop = true;
-	slow_traffic.loop = true;
-	train_flyby.loop = true;
-};
+if (stage <= 4) {
+	fast_traffic.volume = 0.6;
+	slow_traffic.volume = 0.6;
+} else {
+	fast_traffic.volume = 0.2;
+	slow_traffic.volume = 0.2;
+}
+if (stage == 6) {
+	traffic_jam.currentTime = 104;
+}
+traffic_jam.volume = 0.9;
+fast_traffic.loop = true;
+slow_traffic.loop = true;
+train_flyby.loop = true;
 
-let dia = await loadJSON('dialog.json');
+let dia = loadJSON('dialog.json');
 
 loadFont('fonts/Kenney_Rocket_Square.ttf');
 textAlign(CENTER, CENTER);
@@ -65,7 +63,7 @@ cur.physics = KINEMATIC;
 cur.visible = false;
 cur.removeColliders();
 cur.layer = -1;
-cur.spriteSheet = await load('assets/cursors.png');
+cur.spriteSheet = 'assets/cursors.png';
 cur.anis.cutFrames = true;
 cur.addAnis({
 	wait0: [10, 0],
@@ -79,25 +77,28 @@ cur.addAnis({
 	crosshair: [17, 2],
 	default: [6, 1]
 });
+window.cur = cur;
 
-let atlas = await load('assets/traffic.xml');
+// cut frames from sprite sheets into separate images
+// to avoid pixel bleeding from other frames
+allSprites.anis.cutFrames = true;
+allSprites.autoCull = false;
+allSprites.gravityScale = 0;
+
+let atlas = await load('assets/traffic_atlas.xml');
 atlas = parseTextureAtlas(atlas);
 
 allSprites.spriteSheet = await load('assets/traffic.png');
-allSprites.anis.cutFrames = true;
 allSprites.addAnis(atlas);
-allSprites.autoCull = false;
-allSprites.gravityScale = 0;
-// allSprites.scale = 6;
 
-let emoteAtlas = await load('assets/emotes.xml');
+let emoteAtlas = await load('assets/emotes_atlas.xml');
 emoteAtlas = parseTextureAtlas(emoteAtlas);
 
 let emotes = new Group();
-emotes.physics = 'none';
-emotes.spriteSheet = await load('assets/emotes.png');
+emotes.spriteSheet = 'assets/emotes.png';
 emotes.anis.cutFrames = true;
 emotes.addAnis(emoteAtlas);
+emotes.physics = 'none';
 emotes.scale = 6;
 
 let carAnis = Object.keys(allSprites.anis).slice(0, 42);
@@ -111,10 +112,7 @@ window.cars = cars;
 let player = new Sprite('formula');
 player.scale = 6;
 player.removeColliders();
-player.addAni('train', await load('assets/train.png'));
-if (stage == 0) player.changeAni('station');
-else if (stage == 6) player.changeAni('train');
-else player.changeAni('formula');
+player.addAni('train', 'assets/train.png');
 window.player = player;
 
 let lanesPerRoadway = stage <= 3 ? 5 : stage != 6 ? 9 : 3;
@@ -123,6 +121,59 @@ let topLaneY = -25;
 let bottomLaneY = 190;
 
 window.lanes = [];
+
+let marks = new Group();
+marks.w = 64;
+marks.h = 64;
+marks.physics = 'none';
+marks.life = 90;
+marks.rotationSpeed = () => random(-5, 5);
+marks.addAni('assets/crosshairs.png', { frames: 200 });
+marks.scale = 2;
+marks.layer = 999;
+
+let markedCars = [];
+
+let smokes = new Group();
+smokes.w = 256;
+smokes.h = 256;
+smokes.physics = 'none';
+smokes.life = 10;
+smokes.addAni('assets/smokes.png', { frames: 9 });
+
+// distance from player to recycle cars
+let recycleThreshold = 1200;
+let cursorWaitIdx = 0;
+
+let grabPower = false;
+let grabCar;
+let grabbedCars = 0;
+
+let bombPower = stage == 3;
+let bombedCars = 0;
+
+let hillBaseY = 0;
+let hillSize = 600;
+let noiseScale = 0.1;
+let hill2OffsetY = 40;
+let hill2OffsetX = 20;
+let textY = -200;
+
+let stickLockout = true;
+let mouseControlsEnabled = true;
+
+let fader = 1;
+let riser = 0;
+
+q.setup = () => {
+	if (stage == 0) player.changeAni('station');
+	else if (stage == 6) player.changeAni('train');
+	else player.changeAni('formula');
+
+	createLanes();
+
+	if (stage == 3) startStage3();
+};
 
 function createLanes() {
 	for (let i = 0; i < lanesPerRoadway * 2; i++) {
@@ -172,46 +223,6 @@ function createLanes() {
 		player.vel.x = 20;
 	}
 }
-
-createLanes();
-
-let marks = new Group();
-marks.w = 64;
-marks.h = 64;
-marks.physics = 'none';
-marks.life = 90;
-marks.rotationSpeed = () => random(-5, 5);
-marks.addAni('crosshairs-green', await load('assets/crosshairs-green.png'), { frames: 200 });
-// marks.addAni('crosshairs-red', await load('assets/crosshairs-red.png'), { frames: 200 });
-marks.scale = 2;
-marks.layer = 999;
-window.marks = marks;
-
-let markedCars = [];
-
-let smokes = new Group();
-smokes.w = 256;
-smokes.h = 256;
-smokes.physics = 'none';
-smokes.life = 10;
-smokes.addAni('assets/smokes.png', { frames: 9 });
-
-// distance from player to recycle cars
-let recycleThreshold = 1200;
-let cursorWaitIdx = 0;
-
-let grabPower = false;
-let grabCar;
-let grabbedCars = 0;
-
-let bombPower = stage == 3;
-let bombedCars = 0;
-
-let hillBaseY = 0;
-let hillSize = 600;
-let noiseScale = 0.1;
-let shadowOffsetY = 40;
-let shadowOffsetX = 20;
 
 function isLaneOpen(car, targetLaneIdx) {
 	let lane = lanes[targetLaneIdx];
@@ -433,153 +444,6 @@ function updateCars() {
 	}
 }
 
-let stickLockout = true,
-	mouseControlsEnabled = true;
-
-q.update = () => {
-	if (contro.leftStick.y < 0.5 && contro.leftStick.y > -0.5) {
-		stickLockout = false;
-	}
-	if (stage != 6) {
-		if (kb.presses('up') || contro.presses('up') || (contro.ls.y < -0.75 && !stickLockout)) {
-			if (player.lane > 0 && isLaneOpen(player, player.lane - 1)) {
-				insertInLane(player, player.lane - 1);
-				player.targetY = lanes[player.lane].y - player.hh - 1;
-				if (player.vel.x < 0.5) player.vel.x = 0.5; // ensure player moves forward
-				stickLockout = true;
-			}
-		}
-		if (kb.presses('down') || contro.presses('down') || (contro.ls.y > 0.75 && !stickLockout)) {
-			if (player.lane < lanesPerRoadway - 1 && isLaneOpen(player, player.lane + 1)) {
-				insertInLane(player, player.lane + 1);
-				player.targetY = lanes[player.lane].y - player.hh - 1;
-				if (player.vel.x < 0.5) player.vel.x = 0.5; // ensure player moves forward
-				stickLockout = true;
-			}
-		}
-	}
-
-	// Animate player y position toward targetY, lerp speed mapped from player.vel.x
-	let minLerp = 0.05;
-	let maxLerp = 0.2;
-	let minSpeed = 0;
-	let maxSpeed = 5;
-	let lerpSpeed = map(player.vel.x, minSpeed, maxSpeed, minLerp, maxLerp, true);
-	player.y += (player.targetY - player.y) * lerpSpeed;
-
-	if (stage != 4 && stage != 6) {
-		if (kb.pressing('left') || contro.presses('left') || contro.lt) player.vel.x -= 0.1;
-		if (kb.pressing('right') || contro.presses('right') || contro.rt) player.vel.x += 0.1;
-		if (contro.ls.x < -0.2) player.vel.x += contro.ls.x * 0.08; // left
-		if (contro.ls.x > 0.2) player.vel.x += contro.ls.x * 0.08; // right
-	}
-	if (player.vel.x < 0) player.vel.x = 0;
-
-	updateCars();
-
-	if (frameCount % 60 == 0) {
-		cursorWaitIdx = (cursorWaitIdx + 1) % 3;
-	}
-
-	if (mouse.pressed()) mouseControlsEnabled = true;
-
-	if (mouse.presses() || kb.presses(' ') || contro.presses('a')) {
-		if (stage <= 4) {
-			if (!fast_traffic.playing) fast_traffic.play();
-			if (!slow_traffic.playing) slow_traffic.play();
-		}
-		if (stage >= 5) {
-			if (!traffic_jam.playing) traffic_jam.play();
-		}
-		if (stage == 6) {
-			if (!train_flyby.playing) train_flyby.play();
-		}
-	}
-
-	if (grabPower && cur.overlapping(cars)) {
-		cur.rotation = 0;
-		if (mouse.pressing() || kb.pressing(' ') || contro.a || contro.l || contro.r || contro.select) {
-			if (!grabCar) {
-				grabCar = world.getSpriteAt(cur.x, cur.y, cars);
-				if (grabCar) grabbedCars++;
-			}
-			if (grabCar) {
-				cur.changeAni('grabbing');
-				changeToClosestLane(grabCar);
-
-				let offset = 0;
-				if (grabCar.dir == 1) {
-					// Calculate offset to avoid overlap with car in front
-					let lane = lanes[grabCar.lane];
-					let dir = lane.dir;
-					let idx = grabCar.idxInLane;
-					let carAhead = lane[idx - 1];
-					if (carAhead) {
-						let minGap = carAhead.hw + grabCar.hw + 2;
-						if (dir === 1) {
-							let desiredX = carAhead.x - minGap;
-							if (mouse.x > desiredX) offset = desiredX - mouse.x;
-						} else {
-							let desiredX = carAhead.x + minGap;
-							if (mouse.x < desiredX) offset = desiredX - mouse.x;
-						}
-					}
-				}
-
-				grabCar.moveTowards(cur.x + offset, cur.y, 0.1);
-			}
-		} else {
-			cur.changeAni('grab');
-		}
-	} else if (bombPower && cur.overlapping(cars)) {
-		cur.changeAni('crosshair');
-		cur.rotation += 4;
-		let car = world.getSpriteAt(cur.x || mouse.x, cur.y || mouse.y, cars);
-		if (car && !car.wasMarked && car != player) {
-			bombCar(car);
-		}
-	} else if (player.vel.x < 2.5) {
-		cur.rotation--;
-		cur.changeAni('wait' + cursorWaitIdx);
-	} else if (showDialog) {
-		cur.rotation = 0;
-		if (!mouse.pressing()) {
-			cur.changeAni('dialog0');
-		} else {
-			cur.changeAni('dialog1');
-		}
-	} else {
-		cur.rotation = 0;
-		cur.changeAni('default');
-	}
-
-	if (
-		mouse.released() ||
-		kb.released(' ') ||
-		contro.released('a') ||
-		contro.released('r') ||
-		contro.released('select')
-	) {
-		// figure out which lane to move the car to
-		if (grabCar) {
-			grabCar.vel.y = 0; // stop vertical movement
-			changeToClosestLane(grabCar);
-			grabCar.y = lanes[grabCar.lane].y - grabCar.hh - 1;
-			grabCar = null;
-		}
-	}
-
-	for (let car of markedCars) {
-		if ((car.dir == 1 && car.y > 100) || (car.dir == -1 && car.y > 300)) {
-			car.gravityScale = 0;
-			car.speed = 0;
-			car.rotationSpeed = 0;
-		}
-	}
-};
-
-let textY = -200;
-
 function dialog() {
 	if (showDialog) {
 		autoDialog--;
@@ -742,10 +606,147 @@ function startStage3() {
 	bombCar(player);
 }
 
-if (stage == 3) startStage3();
+q.update = () => {
+	if (contro.leftStick.y < 0.5 && contro.leftStick.y > -0.5) {
+		stickLockout = false;
+	}
+	if (stage != 6) {
+		if (kb.presses('up') || contro.presses('up') || (contro.ls.y < -0.75 && !stickLockout)) {
+			if (player.lane > 0 && isLaneOpen(player, player.lane - 1)) {
+				insertInLane(player, player.lane - 1);
+				player.targetY = lanes[player.lane].y - player.hh - 1;
+				if (player.vel.x < 0.5) player.vel.x = 0.5; // ensure player moves forward
+				stickLockout = true;
+			}
+		}
+		if (kb.presses('down') || contro.presses('down') || (contro.ls.y > 0.75 && !stickLockout)) {
+			if (player.lane < lanesPerRoadway - 1 && isLaneOpen(player, player.lane + 1)) {
+				insertInLane(player, player.lane + 1);
+				player.targetY = lanes[player.lane].y - player.hh - 1;
+				if (player.vel.x < 0.5) player.vel.x = 0.5; // ensure player moves forward
+				stickLockout = true;
+			}
+		}
+	}
 
-let fader = 1;
-let riser = 0;
+	// Animate player y position toward targetY, lerp speed mapped from player.vel.x
+	let minLerp = 0.05;
+	let maxLerp = 0.2;
+	let minSpeed = 0;
+	let maxSpeed = 5;
+	let lerpSpeed = map(player.vel.x, minSpeed, maxSpeed, minLerp, maxLerp, true);
+	player.y += (player.targetY - player.y) * lerpSpeed;
+
+	if (stage != 4 && stage != 6) {
+		if (kb.pressing('left') || contro.presses('left') || contro.lt) player.vel.x -= 0.1;
+		if (kb.pressing('right') || contro.presses('right') || contro.rt) player.vel.x += 0.1;
+		if (contro.ls.x < -0.2) player.vel.x += contro.ls.x * 0.08; // left
+		if (contro.ls.x > 0.2) player.vel.x += contro.ls.x * 0.08; // right
+	}
+	if (player.vel.x < 0) player.vel.x = 0;
+
+	updateCars();
+
+	if (frameCount % 60 == 0) {
+		cursorWaitIdx = (cursorWaitIdx + 1) % 3;
+	}
+
+	if (mouse.pressed()) mouseControlsEnabled = true;
+
+	if (mouse.presses() || kb.presses(' ') || contro.presses('a')) {
+		if (stage <= 4) {
+			if (!fast_traffic.playing) fast_traffic.play();
+			if (!slow_traffic.playing) slow_traffic.play();
+		}
+		if (stage >= 5) {
+			if (!traffic_jam.playing) traffic_jam.play();
+		}
+		if (stage == 6) {
+			if (!train_flyby.playing) train_flyby.play();
+		}
+	}
+
+	if (grabPower && cur.overlapping(cars)) {
+		cur.rotation = 0;
+		if (mouse.pressing() || kb.pressing(' ') || contro.a || contro.l || contro.r || contro.select) {
+			if (!grabCar) {
+				grabCar = world.getSpriteAt(cur.x, cur.y, cars);
+				if (grabCar) grabbedCars++;
+			}
+			if (grabCar) {
+				cur.changeAni('grabbing');
+				changeToClosestLane(grabCar);
+
+				let offset = 0;
+				if (grabCar.dir == 1) {
+					// Calculate offset to avoid overlap with car in front
+					let lane = lanes[grabCar.lane];
+					let dir = lane.dir;
+					let idx = grabCar.idxInLane;
+					let carAhead = lane[idx - 1];
+					if (carAhead) {
+						let minGap = carAhead.hw + grabCar.hw + 2;
+						if (dir === 1) {
+							let desiredX = carAhead.x - minGap;
+							if (mouse.x > desiredX) offset = desiredX - mouse.x;
+						} else {
+							let desiredX = carAhead.x + minGap;
+							if (mouse.x < desiredX) offset = desiredX - mouse.x;
+						}
+					}
+				}
+
+				grabCar.moveTowards(cur.x + offset, cur.y, 0.1);
+			}
+		} else {
+			cur.changeAni('grab');
+		}
+	} else if (bombPower && cur.overlapping(cars)) {
+		cur.changeAni('crosshair');
+		cur.rotation += 4;
+		let car = world.getSpriteAt(cur.x || mouse.x, cur.y || mouse.y, cars);
+		if (car && !car.wasMarked && car != player) {
+			bombCar(car);
+		}
+	} else if (player.vel.x < 2.5) {
+		cur.rotation--;
+		cur.changeAni('wait' + cursorWaitIdx);
+	} else if (showDialog) {
+		cur.rotation = 0;
+		if (!mouse.pressing()) {
+			cur.changeAni('dialog0');
+		} else {
+			cur.changeAni('dialog1');
+		}
+	} else {
+		cur.rotation = 0;
+		cur.changeAni('default');
+	}
+
+	if (
+		mouse.released() ||
+		kb.released(' ') ||
+		contro.released('a') ||
+		contro.released('r') ||
+		contro.released('select')
+	) {
+		// figure out which lane to move the car to
+		if (grabCar) {
+			grabCar.vel.y = 0; // stop vertical movement
+			changeToClosestLane(grabCar);
+			grabCar.y = lanes[grabCar.lane].y - grabCar.hh - 1;
+			grabCar = null;
+		}
+	}
+
+	for (let car of markedCars) {
+		if ((car.dir == 1 && car.y > 100) || (car.dir == -1 && car.y > 300)) {
+			car.gravityScale = 0;
+			car.speed = 0;
+			car.rotationSpeed = 0;
+		}
+	}
+};
 
 q.drawFrame = () => {
 	cursor('none');
@@ -777,13 +778,13 @@ q.drawFrame = () => {
 	beginShape();
 	noiseSeedOffset += 2000;
 	noiseScale = 0.002;
-	vertex(-halfWidth - 40 + shadowOffsetX, shadowOffsetY);
+	vertex(-halfWidth - 40 + hill2OffsetX, hill2OffsetY);
 	for (let x = -halfWidth - 400; x < halfWidth + 400; x += 5) {
 		let n = noise(x * noiseScale + noiseSeedOffset);
-		let y = hillBaseY - n * hillSize + shadowOffsetY;
-		vertex(x + shadowOffsetX, y);
+		let y = hillBaseY - n * hillSize + hill2OffsetY;
+		vertex(x + hill2OffsetX, y);
 	}
-	vertex(halfWidth + 40 + shadowOffsetX, shadowOffsetY);
+	vertex(halfWidth + 40 + hill2OffsetX, hill2OffsetY);
 	endShape(CLOSE);
 
 	rect(-halfWidth, 0, width, halfHeight);

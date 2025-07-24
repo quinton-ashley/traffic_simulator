@@ -2,7 +2,9 @@
 
 [Play the game!](https://quinton-ashley.github.io/traffic_simulator/)
 
-Gain the power to beat traffic as you weave, shove, and blast your way through the five stages of grief in this retro "racing" game.
+Beat traffic as you weave, shove, and blast your way through the five stages of grief in this retro "racing" game.
+
+Read the [devlog on Substack](https://q5js.substack.com/p/traffic-simulator-2025).
 
 ## Visual Assets
 
