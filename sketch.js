@@ -15,16 +15,14 @@ noStroke();
 
 world.gravity.y = 10;
 
-let fast_traffic = loadAudio('sounds/fast_traffic.flac');
-let slow_traffic = loadAudio('sounds/slow_traffic.flac');
-let pete_holmes_bit = loadAudio('sounds/pete_holmes_bit.mp3');
-let traffic_jam = loadAudio('sounds/traffic_jam.flac');
-let train_flyby = loadAudio('sounds/train_flyby.flac');
+let fast_traffic = loadAudio('sounds/fast_traffic.ogg');
+let slow_traffic = loadAudio('sounds/slow_traffic.ogg');
+let pete_holmes_bit, traffic_jam, train_flyby;
 
 let explosionsSounds = [];
 for (let i = 2; i <= 3; i++) {
 	for (let j = 0; j <= 4; j++) {
-		let explosion = loadSound(`sounds/Explosion${i}__00${j}.wav`);
+		let explosion = loadSound(`sounds/Explosion${i}__00${j}.ogg`);
 		explosion.volume = 0.8;
 		explosionsSounds.push(explosion);
 	}
@@ -34,22 +32,7 @@ for (let i = 0; i <= 4; i++) {
 	explosionsSounds.push(loadSound(`sounds/explosionCrunch_00${i}.ogg`));
 }
 
-let crash = loadSound('sounds/car_crash.flac');
-
-if (stage <= 4) {
-	fast_traffic.volume = 0.6;
-	slow_traffic.volume = 0.6;
-} else {
-	fast_traffic.volume = 0.2;
-	slow_traffic.volume = 0.2;
-}
-if (stage == 6) {
-	traffic_jam.currentTime = 104;
-}
-traffic_jam.volume = 0.9;
-fast_traffic.loop = true;
-slow_traffic.loop = true;
-train_flyby.loop = true;
+let crash = loadSound('sounds/car_crash.ogg');
 
 let dia = loadJSON('dialog.json');
 
@@ -104,7 +87,7 @@ emotes.scale = 6;
 let carAnis = Object.keys(allSprites.anis).slice(0, 42);
 
 let cars = new Group();
-// cars.scale = 6;
+// cars.scale = 4;
 cars.rotationLock = true;
 cars.overlap(cars);
 window.cars = cars;
@@ -166,6 +149,26 @@ let fader = 1;
 let riser = 0;
 
 q.setup = () => {
+	// lazy load since this audio isn't used in the first stage
+	pete_holmes_bit = loadAudio('sounds/pete_holmes_bit.mp3');
+	traffic_jam = loadAudio('sounds/traffic_jam.ogg');
+	train_flyby = loadAudio('sounds/train_flyby.ogg');
+
+	if (stage <= 4) {
+		fast_traffic.volume = 0.6;
+		slow_traffic.volume = 0.6;
+	} else {
+		fast_traffic.volume = 0.2;
+		slow_traffic.volume = 0.2;
+	}
+	if (stage == 6) {
+		traffic_jam.currentTime = 104;
+	}
+	traffic_jam.volume = 0.9;
+	fast_traffic.loop = true;
+	slow_traffic.loop = true;
+	train_flyby.loop = true;
+
 	if (stage == 0) player.changeAni('station');
 	else if (stage == 6) player.changeAni('train');
 	else player.changeAni('formula');
@@ -612,19 +615,29 @@ q.update = () => {
 	}
 	if (stage != 6) {
 		if (kb.presses('up') || contro.presses('up') || (contro.ls.y < -0.75 && !stickLockout)) {
-			if (player.lane > 0 && isLaneOpen(player, player.lane - 1)) {
-				insertInLane(player, player.lane - 1);
-				player.targetY = lanes[player.lane].y - player.hh - 1;
-				if (player.vel.x < 0.5) player.vel.x = 0.5; // ensure player moves forward
-				stickLockout = true;
+			if (player.lane > 0) {
+				if (isLaneOpen(player, player.lane - 1)) {
+					insertInLane(player, player.lane - 1);
+					player.targetY = lanes[player.lane].y - player.hh - 1;
+					if (player.vel.x < 0.5) player.vel.x = 0.5; // ensure player moves forward
+					stickLockout = true;
+				} else {
+					player.y -= 4;
+					crash.play();
+				}
 			}
 		}
 		if (kb.presses('down') || contro.presses('down') || (contro.ls.y > 0.75 && !stickLockout)) {
-			if (player.lane < lanesPerRoadway - 1 && isLaneOpen(player, player.lane + 1)) {
-				insertInLane(player, player.lane + 1);
-				player.targetY = lanes[player.lane].y - player.hh - 1;
-				if (player.vel.x < 0.5) player.vel.x = 0.5; // ensure player moves forward
-				stickLockout = true;
+			if (player.lane < lanesPerRoadway - 1) {
+				if (isLaneOpen(player, player.lane + 1)) {
+					insertInLane(player, player.lane + 1);
+					player.targetY = lanes[player.lane].y - player.hh - 1;
+					if (player.vel.x < 0.5) player.vel.x = 0.5; // ensure player moves forward
+					stickLockout = true;
+				} else {
+					player.y += 4;
+					crash.play();
+				}
 			}
 		}
 	}
