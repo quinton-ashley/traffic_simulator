@@ -1,0 +1,32 @@
+<TextureAtlas imagePath="emotes.png">
+	<SubTexture name="blank.png" x="32" y="32" width="16" height="16"/>
+	<SubTexture name="alert.png" x="64" y="64" width="16" height="16"/>
+	<SubTexture name="anger.png" x="64" y="48" width="16" height="16"/>
+	<SubTexture name="bars.png" x="64" y="32" width="16" height="16"/>
+	<SubTexture name="cash.png" x="64" y="16" width="16" height="16"/>
+	<SubTexture name="circle.png" x="64" y="0" width="16" height="16"/>
+	<SubTexture name="cloud.png" x="48" y="80" width="16" height="16"/>
+	<SubTexture name="cross.png" x="48" y="64" width="16" height="16"/>
+	<SubTexture name="dots1.png" x="48" y="48" width="16" height="16"/>
+	<SubTexture name="dots2.png" x="48" y="32" width="16" height="16"/>
+	<SubTexture name="dots3.png" x="48" y="16" width="16" height="16"/>
+	<SubTexture name="drop.png" x="48" y="0" width="16" height="16"/>
+	<SubTexture name="drops.png" x="32" y="80" width="16" height="16"/>
+	<SubTexture name="exclamation.png" x="32" y="64" width="16" height="16"/>
+	<SubTexture name="exclamations.png" x="32" y="48" width="16" height="16"/>
+	<SubTexture name="faceAngry.png" x="64" y="80" width="16" height="16"/>
+	<SubTexture name="faceHappy.png" x="32" y="16" width="16" height="16"/>
+	<SubTexture name="faceSad.png" x="32" y="0" width="16" height="16"/>
+	<SubTexture name="heart.png" x="16" y="80" width="16" height="16"/>
+	<SubTexture name="heartBroken.png" x="16" y="64" width="16" height="16"/>
+	<SubTexture name="hearts.png" x="16" y="48" width="16" height="16"/>
+	<SubTexture name="idea.png" x="16" y="32" width="16" height="16"/>
+	<SubTexture name="laugh.png" x="16" y="16" width="16" height="16"/>
+	<SubTexture name="music.png" x="16" y="0" width="16" height="16"/>
+	<SubTexture name="question.png" x="0" y="80" width="16" height="16"/>
+	<SubTexture name="sleep.png" x="0" y="64" width="16" height="16"/>
+	<SubTexture name="sleeps.png" x="0" y="48" width="16" height="16"/>
+	<SubTexture name="star.png" x="0" y="32" width="16" height="16"/>
+	<SubTexture name="stars.png" x="0" y="16" width="16" height="16"/>
+	<SubTexture name="swirl.png" x="0" y="0" width="16" height="16"/>
+</TextureAtlas>
