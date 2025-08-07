@@ -10,8 +10,9 @@ let showDialog = true;
 let autoDialog = 500;
 
 createCanvas();
-displayMode(MAXED, PIXELATED);
+noSmooth();
 noStroke();
+imageMode(CENTER);
 
 world.gravity.y = 10;
 
@@ -101,7 +102,7 @@ emotes.scale = 6;
 let carAnis = Object.keys(allSprites.anis).slice(0, 42);
 
 let cars = new Group();
-// cars.scale = 4;
+// cars.scale = 6;
 cars.rotationLock = true;
 cars.overlap(cars);
 window.cars = cars;
@@ -126,7 +127,7 @@ marks.physics = 'none';
 marks.life = 90;
 marks.rotationSpeed = () => random(-5, 5);
 marks.addAni('assets/crosshairs.png', { frames: 200 });
-marks.scale = 2;
+marks.scale = 4;
 marks.layer = 999;
 
 let markedCars = [];
